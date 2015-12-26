@@ -18,6 +18,7 @@ package fc.cron;
 import static org.fest.assertions.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,11 +29,6 @@ import org.joda.time.LocalDate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import fc.cron.CronExpression.CronFieldType;
-import fc.cron.CronExpression.DayOfMonthField;
-import fc.cron.CronExpression.DayOfWeekField;
-import fc.cron.CronExpression.SimpleField;
 
 public class CronExpressionTest {
     DateTimeZone original;
@@ -55,8 +51,8 @@ public class CronExpressionTest {
     }
 
     private void assertPossibleValues(SimpleField field, Integer... values) {
-        Set<Integer> valid = values == null ? new HashSet<Integer>() : new HashSet<>(Arrays.asList(values));
-        for (int i = field.fieldType.from; i <= field.fieldType.to; i++) {
+        Set<Integer> valid = values == null ? Collections.<Integer>emptySet() : new HashSet<Integer>(Arrays.asList(values));
+        for (int i = field.fieldType.getFrom(); i <= field.fieldType.getTo(); i++) {
             String errorText = i + ":" + valid;
             if (valid.contains(i)) {
                 assertThat(field.matches(i)).as(errorText).isTrue();
@@ -133,13 +129,13 @@ public class CronExpressionTest {
 
     @Test
     public void shall_give_last_day_of_month_in_leapyear() throws Exception {
-        CronExpression.DayOfMonthField field = new DayOfMonthField("L");
+        DayOfMonthField field = new DayOfMonthField("L");
         assertThat(field.matches(new LocalDate(2012, 02, 29))).isTrue();
     }
 
     @Test
     public void shall_give_last_day_of_month() throws Exception {
-        CronExpression.DayOfMonthField field = new DayOfMonthField("L");
+        DayOfMonthField field = new DayOfMonthField("L");
         assertThat(field.matches(new LocalDate().withDayOfMonth(new LocalDate().dayOfMonth().getMaximumValue()))).isTrue();
     }
 
@@ -166,16 +162,18 @@ public class CronExpressionTest {
 
     @Test
     public void check_second_increment() throws Exception {
-        assertThat(new CronExpression("5/15 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 05));
-        assertThat(new CronExpression("5/15 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 05))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 20));
-        assertThat(new CronExpression("5/15 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 20))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 35));
-        assertThat(new CronExpression("5/15 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 35))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 50));
-        assertThat(new CronExpression("5/15 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 50))).isEqualTo(new DateTime(2012, 4, 10, 13, 01, 05));
+        CronExpression cron = new CronExpression("5/15 * * * * *");
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 05));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 05))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 20));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 20))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 35));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 35))).isEqualTo(new DateTime(2012, 4, 10, 13, 00, 50));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 50))).isEqualTo(new DateTime(2012, 4, 10, 13, 01, 05));
 
         // if rolling over minute then reset second (cron rules - increment affects only values in own field)
-        assertThat(new CronExpression("10/100 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 50)))
+        cron = new CronExpression("10/100 * * * * *");
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 00, 50)))
                 .isEqualTo(new DateTime(2012, 4, 10, 13, 01, 10));
-        assertThat(new CronExpression("10/100 * * * * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 01, 10)))
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 13, 01, 10)))
                 .isEqualTo(new DateTime(2012, 4, 10, 13, 02, 10));
     }
 
@@ -295,11 +293,29 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfMonthField_number() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("3");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 5, 3));
+        assertThat(field.nextDate(new LocalDate(2012, 5, 03))).isEqualTo(new LocalDate(2012, 6, 3));
+    }
+
+    @Test
     public void check_dayOfMonth_increment() throws Exception {
         assertThat(new CronExpression("0 0 0 1/15 * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00))).isEqualTo(new DateTime(2012, 4, 16, 00, 00));
         assertThat(new CronExpression("0 0 0 1/15 * *").nextTimeAfter(new DateTime(2012, 4, 16, 00, 00))).isEqualTo(new DateTime(2012, 5, 01, 00, 00));
         assertThat(new CronExpression("0 0 0 1/15 * *").nextTimeAfter(new DateTime(2012, 4, 30, 00, 00))).isEqualTo(new DateTime(2012, 5, 01, 00, 00));
         assertThat(new CronExpression("0 0 0 1/15 * *").nextTimeAfter(new DateTime(2012, 5, 01, 00, 00))).isEqualTo(new DateTime(2012, 5, 16, 00, 00));
+        assertThat(new CronExpression("0 0 0 1/15 * *").nextTimeAfter(new DateTime(2012, 5, 16, 00, 00))).isEqualTo(new DateTime(2012, 5, 31, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfMonthField_increment() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("1/15");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 16));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 16))).isEqualTo(new LocalDate(2012, 5, 1));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 30))).isEqualTo(new LocalDate(2012, 5, 1));
+        assertThat(field.nextDate(new LocalDate(2012, 5, 01))).isEqualTo(new LocalDate(2012, 5, 16));
+        assertThat(field.nextDate(new LocalDate(2012, 5, 16))).isEqualTo(new LocalDate(2012, 5, 31));
     }
 
     @Test
@@ -311,15 +327,41 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfMonthField_list() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("7,19");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 19));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 19))).isEqualTo(new LocalDate(2012, 5, 07));
+        assertThat(field.nextDate(new LocalDate(2012, 5, 07))).isEqualTo(new LocalDate(2012, 5, 19));
+        assertThat(field.nextDate(new LocalDate(2012, 5, 30))).isEqualTo(new LocalDate(2012, 6, 07));
+    }
+
+    @Test
     public void check_dayOfMonth_last() throws Exception {
         assertThat(new CronExpression("0 0 0 L * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00))).isEqualTo(new DateTime(2012, 4, 30, 00, 00));
         assertThat(new CronExpression("0 0 0 L * *").nextTimeAfter(new DateTime(2012, 2, 12, 00, 00))).isEqualTo(new DateTime(2012, 2, 29, 00, 00));
+        assertThat(new CronExpression("0 0 0 L * *").nextTimeAfter(new DateTime(2012, 2, 29, 00, 00))).isEqualTo(new DateTime(2012, 3, 31, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfMonthField_last() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("L");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 30));
+        assertThat(field.nextDate(new LocalDate(2012, 2, 12))).isEqualTo(new LocalDate(2012, 2, 29));
+        assertThat(field.nextDate(new LocalDate(2012, 2, 29))).isEqualTo(new LocalDate(2012, 3, 31));
+        assertThat(field.nextDate(new LocalDate(2013, 2, 12))).isEqualTo(new LocalDate(2013, 2, 28));
     }
 
     @Test
     public void check_dayOfMonth_number_last_L() throws Exception {
         assertThat(new CronExpression("0 0 0 3L * *").nextTimeAfter(new DateTime(2012, 4, 10, 13, 00))).isEqualTo(new DateTime(2012, 4, 30 - 3, 00, 00));
         assertThat(new CronExpression("0 0 0 3L * *").nextTimeAfter(new DateTime(2012, 2, 12, 00, 00))).isEqualTo(new DateTime(2012, 2, 29 - 3, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfMonthField_number_last_L() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("3L");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 30 - 3));
+        assertThat(field.nextDate(new LocalDate(2012, 2, 12))).isEqualTo(new LocalDate(2012, 2, 29 - 3));
     }
 
     @Test
@@ -335,6 +377,22 @@ public class CronExpressionTest {
 
         // 9 - sunday, monday closest weekday in september
         assertThat(new CronExpression("0 0 0 9W * *").nextTimeAfter(new DateTime(2012, 9, 1, 00, 00))).isEqualTo(new DateTime(2012, 9, 10, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfMonthField_closest_weekday_W() throws Exception {
+        DayOfMonthField field = new DayOfMonthField("9W");
+        // 9 - is weekday in may
+        assertThat(field.nextDate(new LocalDate(2012, 5, 2))).isEqualTo(new LocalDate(2012, 5, 9));
+
+        // 9 - is weekday in may
+        assertThat(field.nextDate(new LocalDate(2012, 5, 8))).isEqualTo(new LocalDate(2012, 5, 9));
+
+        // 9 - saturday, friday closest weekday in june
+        assertThat(field.nextDate(new LocalDate(2012, 5, 9))).isEqualTo(new LocalDate(2012, 6, 8));
+
+        // 9 - sunday, monday closest weekday in september
+        assertThat(field.nextDate(new LocalDate(2012, 9, 1))).isEqualTo(new LocalDate(2012, 9, 10));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -397,10 +455,27 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfWeekField_increment() throws Exception {
+        DayOfWeekField field = new DayOfWeekField("3/2");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 4, 4));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 4))).isEqualTo(new LocalDate(2012, 4, 6));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 6))).isEqualTo(new LocalDate(2012, 4, 8));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 8))).isEqualTo(new LocalDate(2012, 4, 11));
+    }
+
+    @Test
     public void check_dayOfWeek_list() throws Exception {
         assertThat(new CronExpression("0 0 0 * * 1,5,7").nextTimeAfter(new DateTime(2012, 4, 1, 00, 00))).isEqualTo(new DateTime(2012, 4, 2, 00, 00));
         assertThat(new CronExpression("0 0 0 * * 1,5,7").nextTimeAfter(new DateTime(2012, 4, 2, 00, 00))).isEqualTo(new DateTime(2012, 4, 6, 00, 00));
         assertThat(new CronExpression("0 0 0 * * 1,5,7").nextTimeAfter(new DateTime(2012, 4, 6, 00, 00))).isEqualTo(new DateTime(2012, 4, 8, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfWeekField_list() throws Exception {
+        DayOfWeekField field = new DayOfWeekField("1,5,7");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 4, 2));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 2))).isEqualTo(new LocalDate(2012, 4, 6));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 6))).isEqualTo(new LocalDate(2012, 4, 8));
     }
 
     @Test
@@ -411,11 +486,29 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfWeekField_list_by_name() throws Exception {
+        DayOfWeekField field = new DayOfWeekField("MON,FRI,SUN");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 4, 2));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 2))).isEqualTo(new LocalDate(2012, 4, 6));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 6))).isEqualTo(new LocalDate(2012, 4, 8));
+
+    }
+
+    @Test
     public void check_dayOfWeek_last_friday_in_month() throws Exception {
         assertThat(new CronExpression("0 0 0 * * 5L").nextTimeAfter(new DateTime(2012, 4, 1, 00, 00))).isEqualTo(new DateTime(2012, 4, 27, 00, 00));
         assertThat(new CronExpression("0 0 0 * * 5L").nextTimeAfter(new DateTime(2012, 4, 27, 00, 00))).isEqualTo(new DateTime(2012, 5, 25, 00, 00));
         assertThat(new CronExpression("0 0 0 * * 5L").nextTimeAfter(new DateTime(2012, 2, 6, 00, 00))).isEqualTo(new DateTime(2012, 2, 24, 00, 00));
         assertThat(new CronExpression("0 0 0 * * FRIL").nextTimeAfter(new DateTime(2012, 2, 6, 00, 00))).isEqualTo(new DateTime(2012, 2, 24, 00, 00));
+    }
+
+    @Test
+    public void check_dayOfWeekField_last_friday_in_month() throws Exception {
+        DayOfWeekField field = new DayOfWeekField("5L");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 4, 27));
+        assertThat(field.nextDate(new LocalDate(2012, 4, 27))).isEqualTo(new LocalDate(2012, 5, 25));
+        assertThat(field.nextDate(new LocalDate(2012, 2, 6))).isEqualTo(new LocalDate(2012, 2, 24));
+        assertThat(new DayOfWeekField("FRIL").nextDate(new LocalDate(2012, 2, 6))).isEqualTo(new LocalDate(2012, 2, 24));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -452,6 +545,16 @@ public class CronExpressionTest {
         assertThat(new CronExpression("0 0 0 * * WED#5").nextTimeAfter(new DateTime(2012, 2, 6, 00, 00))).isEqualTo(new DateTime(2012, 2, 29, 00, 00)); // leapday
     }
 
+    @Test
+    public void check_dayOfWeekField_nth_friday_in_month() throws Exception {
+        assertThat(new DayOfWeekField("5#3").nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 4, 20));
+        assertThat(new DayOfWeekField("5#3").nextDate(new LocalDate(2012, 4, 20))).isEqualTo(new LocalDate(2012, 5, 18));
+        assertThat(new DayOfWeekField("7#1").nextDate(new LocalDate(2012, 3, 30))).isEqualTo(new LocalDate(2012, 4, 1));
+        assertThat(new DayOfWeekField("7#1").nextDate(new LocalDate(2012, 4, 1))).isEqualTo(new LocalDate(2012, 5, 6));
+        assertThat(new DayOfWeekField("3#5").nextDate(new LocalDate(2012, 2, 6))).isEqualTo(new LocalDate(2012, 2, 29));
+        assertThat(new DayOfWeekField("WED#5").nextDate(new LocalDate(2012, 2, 6))).isEqualTo(new LocalDate(2012, 2, 29));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void shall_not_not_support_rolling_period() throws Exception {
         new CronExpression("* * 5-1 * * *");
@@ -467,6 +570,16 @@ public class CronExpressionTest {
     public void test_default_barrier() throws Exception {
         // the default barrier is 4 years - so leap years are considered.
         assertThat(new CronExpression("* * * 29 2 *").nextTimeAfter(new DateTime(2012, 3, 1, 00, 00))).isEqualTo(new DateTime(2016, 2, 29, 00, 00));
+    }
+
+    @Test
+    public void check_year_number() throws Exception {
+        assertThat(new CronExpression("0 0 0 29 FEB ? 2012").nextTimeAfter(new DateTime(2012, 2, 1, 00, 00))).isEqualTo(new DateTime(2012, 2, 29, 00, 00));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void test_error_when_no_more_dates() throws Exception {
+        new CronExpression("0 0 0 29 FEB ? 2012").nextTimeAfter(new DateTime(2015, 2, 1, 00, 00));
     }
 
     @Test(expected = IllegalArgumentException.class)
