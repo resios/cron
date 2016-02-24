@@ -15,13 +15,6 @@
  */
 package fc.cron;
 
-import static org.fest.assertions.Assertions.assertThat;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Hours;
@@ -29,6 +22,14 @@ import org.joda.time.LocalDate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.NoSuchElementException;
+import java.util.Set;
+
+import static org.fest.assertions.Assertions.assertThat;
 
 public class CronExpressionTest {
     DateTimeZone original;
@@ -362,6 +363,10 @@ public class CronExpressionTest {
         DayOfMonthField field = new DayOfMonthField("3L");
         assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 30 - 3));
         assertThat(field.nextDate(new LocalDate(2012, 2, 12))).isEqualTo(new LocalDate(2012, 2, 29 - 3));
+
+        field = new DayOfMonthField("L-3");
+        assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 30 - 3));
+        assertThat(field.nextDate(new LocalDate(2012, 2, 12))).isEqualTo(new LocalDate(2012, 2, 29 - 3));
     }
 
     @Test
@@ -577,9 +582,14 @@ public class CronExpressionTest {
         assertThat(new CronExpression("0 0 0 29 FEB ? 2012").nextTimeAfter(new DateTime(2012, 2, 1, 00, 00))).isEqualTo(new DateTime(2012, 2, 29, 00, 00));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = NoSuchElementException.class)
     public void test_error_when_no_more_dates() throws Exception {
         new CronExpression("0 0 0 29 FEB ? 2012").nextTimeAfter(new DateTime(2015, 2, 1, 00, 00));
+    }
+
+    @Test
+    public void test_year_in_the_future() throws Exception {
+        assertThat(new CronExpression("0 11 11 11 11 ?").nextTimeAfter(new DateTime(2116,11,11,11,11,00))).isEqualTo(new DateTime(2117,11,11,11,11,00));
     }
 
     @Test(expected = IllegalArgumentException.class)

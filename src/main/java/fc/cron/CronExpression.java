@@ -15,11 +15,12 @@
  */
 package fc.cron;
 
-import java.util.regex.Pattern;
-
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.MutableDateTime;
+
+import java.util.NoSuchElementException;
+import java.util.regex.Pattern;
 
 /**
  * Parser for unix-like cron expressions: Cron expressions allow specifying combinations of criteria
@@ -176,88 +177,20 @@ public class CronExpression {
         nextTime.setMillisOfSecond(0);
         nextTime.secondOfDay().add(1);
 
+        nextYear(dateTimeBarrier, nextTime);
+
+        return nextTime.toDateTime();
+    }
+
+    private void nextYear(DateTime dateTimeBarrier, MutableDateTime nextTime) {
         while (true) { // year
-            while (true) { // day of week
-                while (true) { // month
-                    while (true) { // day of month
-                        while (true) { // hour
-                            while (true) { // minute
-                                while (true) { // second
-                                    if (secondField.matches(nextTime.getSecondOfMinute())) {
-                                        break;
-                                    }
-
-                                    int second = secondField.nextValue(nextTime.getSecondOfMinute());
-
-                                    if (second < 0) {
-                                        nextTime.minuteOfDay().add(1);
-                                        nextTime.setSecondOfMinute(secondField.nextValue(0));
-                                    } else {
-                                        nextTime.setSecondOfMinute(second);
-                                    }
-                                }
-                                if (minuteField.matches(nextTime.getMinuteOfHour())) {
-                                    break;
-                                }
-                                int minute = minuteField.nextValue(nextTime.getMinuteOfHour());
-                                if (minute < 0) {
-                                    nextTime.hourOfDay().add(1);
-                                    nextTime.setMinuteOfHour(minuteField.nextValue(0));
-                                } else {
-                                    nextTime.setMinuteOfHour(minute);
-                                }
-                                nextTime.secondOfMinute().set(0);
-                            }
-                            if (hourField.matches(nextTime.getHourOfDay())) {
-                                break;
-                            }
-                            int hour = hourField.nextValue(nextTime.getHourOfDay());
-                            if (hour < 0) {
-                                nextTime.dayOfYear().add(1);
-                                nextTime.setHourOfDay(hourField.nextValue(0));
-                            } else {
-                                nextTime.setHourOfDay(hour);
-                            }
-                            nextTime.minuteOfHour().set(0);
-                            nextTime.secondOfMinute().set(0);
-                        }
-                        if (dayOfMonthField.matches(new LocalDate(nextTime))) {
-                            break;
-                        }
-
-                        LocalDate nextDate = dayOfMonthField.nextDate(new LocalDate(nextTime));
-                        nextTime.setDate(nextDate.getYear(), nextDate.getMonthOfYear(), nextDate.getDayOfMonth());
-                        nextTime.setTime(0, 0, 0, 0);
-                        checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
-                    }
-                    if (monthField.matches(nextTime.getMonthOfYear())) {
-                        break;
-                    }
-                    int month = monthField.nextValue(nextTime.getMonthOfYear());
-                    if (month < 0) {
-                        nextTime.year().add(1);
-                        nextTime.setMonthOfYear(monthField.nextValue(1));
-                    } else {
-                        nextTime.setMonthOfYear(month);
-                    }
-                    nextTime.setDayOfMonth(1);
-                    nextTime.setTime(0, 0, 0, 0);
-                    checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
-                }
-                if (dayOfWeekField.matches(new LocalDate(nextTime))) {
-                    break;
-                }
-                LocalDate nextDate = dayOfWeekField.nextDate(new LocalDate(nextTime));
-                nextTime.setDate(nextDate.getYear(), nextDate.getMonthOfYear(), nextDate.getDayOfMonth());
-                nextTime.setTime(0, 0, 0, 0);
-                checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
-            }
+            nextDayOfWeek(dateTimeBarrier, nextTime);
             if (yearField.matches(nextTime.getYear())) {
                 break;
             }
             int year = yearField.nextValue(nextTime.getYear());
             if (year < 0) {
-                throw new IllegalArgumentException("No next execution time exists after " + nextTime);
+                throw new NoSuchElementException("No next execution time exists after " + nextTime);
             } else {
                 nextTime.setYear(year);
             }
@@ -266,8 +199,104 @@ public class CronExpression {
             nextTime.setTime(0, 0, 0, 0);
             checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
         }
+    }
 
-        return nextTime.toDateTime();
+    private void nextDayOfWeek(DateTime dateTimeBarrier, MutableDateTime nextTime) {
+        while (true) { // day of week
+            nextMonth(dateTimeBarrier, nextTime);
+            if (dayOfWeekField.matches(new LocalDate(nextTime))) {
+                break;
+            }
+            LocalDate nextDate = dayOfWeekField.nextDate(new LocalDate(nextTime));
+            nextTime.setDate(nextDate.getYear(), nextDate.getMonthOfYear(), nextDate.getDayOfMonth());
+            nextTime.setTime(0, 0, 0, 0);
+            checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
+        }
+    }
+
+    private void nextMonth(DateTime dateTimeBarrier, MutableDateTime nextTime) {
+        while (true) { // month
+            nextDayOfMonth(dateTimeBarrier, nextTime);
+            if (monthField.matches(nextTime.getMonthOfYear())) {
+                break;
+            }
+            int month = monthField.nextValue(nextTime.getMonthOfYear());
+            if (month < 0) {
+                nextTime.year().add(1);
+                nextTime.setMonthOfYear(monthField.nextValue(1));
+            } else {
+                nextTime.setMonthOfYear(month);
+            }
+            nextTime.setDayOfMonth(1);
+            nextTime.setTime(0, 0, 0, 0);
+            checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
+        }
+    }
+
+    private void nextDayOfMonth(DateTime dateTimeBarrier, MutableDateTime nextTime) {
+        while (true) { // day of month
+            nextHour(nextTime);
+            if (dayOfMonthField.matches(new LocalDate(nextTime))) {
+                break;
+            }
+
+            LocalDate nextDate = dayOfMonthField.nextDate(new LocalDate(nextTime));
+            nextTime.setDate(nextDate.getYear(), nextDate.getMonthOfYear(), nextDate.getDayOfMonth());
+            nextTime.setTime(0, 0, 0, 0);
+            checkIfDateTimeBarrierIsReached(nextTime, dateTimeBarrier);
+        }
+    }
+
+    private void nextHour(MutableDateTime nextTime) {
+        while (true) { // hour
+            nextMinute(nextTime);
+            if (hourField.matches(nextTime.getHourOfDay())) {
+                break;
+            }
+            int hour = hourField.nextValue(nextTime.getHourOfDay());
+            if (hour < 0) {
+                nextTime.dayOfYear().add(1);
+                nextTime.setHourOfDay(hourField.nextValue(0));
+            } else {
+                nextTime.setHourOfDay(hour);
+            }
+            nextTime.minuteOfHour().set(0);
+            nextTime.secondOfMinute().set(0);
+        }
+    }
+
+    private void nextMinute(MutableDateTime nextTime) {
+        while (true) { // minute
+            nextSecond(nextTime);
+            if (minuteField.matches(nextTime.getMinuteOfHour())) {
+                break;
+            }
+            int minute = minuteField.nextValue(nextTime.getMinuteOfHour());
+            if (minute < 0) {
+                nextTime.hourOfDay().add(1);
+                nextTime.setMinuteOfHour(minuteField.nextValue(0));
+            } else {
+                nextTime.setMinuteOfHour(minute);
+            }
+            nextTime.secondOfMinute().set(0);
+        }
+    }
+
+    private void nextSecond(MutableDateTime nextTime) {
+        while (true) { // second
+            if (secondField.matches(nextTime.getSecondOfMinute())) {
+                break;
+            }
+
+            int second = secondField.nextValue(nextTime.getSecondOfMinute());
+
+            if (second < 0) {
+                nextTime.minuteOfDay().add(1);
+                nextTime.setSecondOfMinute(secondField.nextValue(0));
+            } else {
+                nextTime.setSecondOfMinute(second);
+            }
+        }
     }
 
     private static void checkIfDateTimeBarrierIsReached(MutableDateTime nextTime, DateTime dateTimeBarrier) {

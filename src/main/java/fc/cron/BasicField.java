@@ -10,7 +10,8 @@ import java.util.regex.Pattern;
 abstract class BasicField {
     private static final Pattern CRON_FELT_REGEXP = Pattern
             .compile("(?:                                             # start of group 1\n"
-                            + "   (?:(?<all>\\*)|(?<ignorer>\\?)|(?<last>L))  # globalt flag (L, ?, *)\n"
+                            + "   (?:(?<all>\\*)|(?<any>\\?) # globalt flag ( *, ? )\n"
+                            + " | (?:(?<last>L)((?<lastWeek>W)|(?:-(?<lastOffset>[0-9]{1,2}))?)))  # last modifier (L-4)\n"
                             + " | (?<start>[0-9]{1,4}|[a-z]{3,3})              # or start number or symbol\n"
                             + "      (?:                                        # start of group 2\n"
                             + "         (?<mod>L|W)                             # modifier (L,W)\n"
@@ -22,7 +23,7 @@ abstract class BasicField {
 
     protected final CronFieldType fieldType;
     protected final List<FieldPart> parts = new ArrayList<FieldPart>();
-    protected final BitSet values;
+    private final BitSet values;
 
     BasicField(CronFieldType fieldType, String fieldExpr) {
         this.fieldType = fieldType;
@@ -37,19 +38,19 @@ abstract class BasicField {
             if (!m.matches()) {
                 throw new IllegalArgumentException("Invalid cron field '" + rangePart + "' for field [" + fieldType + "]");
             }
-            String startNummer = m.group("start");
+            String startNumber = m.group("start");
             String modifier = m.group("mod");
-            String sluttNummer = m.group("end");
+            String endNumber = m.group("end");
             String inkrementModifier = m.group("inkmod");
             String inkrement = m.group("ink");
 
             FieldPart part = new FieldPart();
             part.setIncrement(999);
-            if (startNummer != null) {
-                part.setFrom(mapValue(startNummer));
+            if (startNumber != null) {
+                part.setFrom(mapValue(startNumber));
                 part.setModifier(modifier);
-                if (sluttNummer != null) {
-                    part.setTo(mapValue(sluttNummer));
+                if (endNumber != null) {
+                    part.setTo(mapValue(endNumber));
                     part.setIncrement(1);
                 } else if (inkrement != null) {
                     part.setTo(fieldType.getTo());
@@ -60,10 +61,16 @@ abstract class BasicField {
                 part.setFrom(fieldType.getFrom());
                 part.setTo(fieldType.getTo());
                 part.setIncrement(1);
-            } else if (m.group("ignorer") != null) {
-                part.setModifier(m.group("ignorer"));
+            } else if (m.group("any") != null) {
+                part.setModifier(m.group("any"));
+
             } else if (m.group("last") != null) {
                 part.setModifier(m.group("last"));
+                startNumber = m.group("lastOffset");
+                if(startNumber != null){
+                    part.setFrom(mapValue(startNumber));
+                    part.setTo(part.getFrom());
+                }
             } else {
                 throw new IllegalArgumentException("Invalid cron part: " + rangePart);
             }
@@ -108,7 +115,7 @@ abstract class BasicField {
 
     protected Integer mapValue(String value) {
         Integer idx;
-        if (fieldType.getNames() != null && (idx = fieldType.getNames().indexOf(value.toUpperCase(Locale.getDefault()))) >= 0) {
+        if (fieldType.getNames() != null && (idx = fieldType.getNames().indexOf(value.toUpperCase(Locale.US))) >= 0) {
             return idx + 1;
         }
         return Integer.valueOf(value);
@@ -123,6 +130,10 @@ abstract class BasicField {
         return !values.isEmpty();
     }
 
+    boolean matches(int val) {
+        return values.get(val - fieldType.getFrom());
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("BasicField{");
@@ -131,9 +142,5 @@ abstract class BasicField {
         sb.append(", values=").append(values);
         sb.append('}');
         return sb.toString();
-    }
-
-    boolean matches(int val) {
-        return values.get(val - fieldType.getFrom());
     }
 }
