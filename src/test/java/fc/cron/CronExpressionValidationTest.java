@@ -27,9 +27,12 @@ public class CronExpressionValidationTest {
             "0 15 10 15 * ?",
             "0 15 10 L * ?",
             "0 15 10 L-2 * ?",
-            "0 15 10 ? * FRIL", //TODO: modify the library to use US day numbering (e.g., starting from SUN not MON: 1 - SUN, ..., 7 - SAT)
+            "0 15 10 ? * FRIL",
+            "0 15 10 ? * 6L",
             "0 15 10 ? * FRIL 2002-2005",
+            "0 15 10 ? * 6L 2002-2005",
             "0 15 10 ? * FRI#3",
+            "0 15 10 ? * 6#3",
             "0 0 12 1/5 * ?",
             "0 11 11 11 11 ?",
             "* * * * * ? *",
@@ -44,7 +47,7 @@ public class CronExpressionValidationTest {
     }
 
     private void testIsCompatibleWithQuartz(String cron) throws ParseException {
-        CronExpression expression = new CronExpression(cron, true);
+        CronExpression expression = new CronExpression(cron, true, true);
         org.quartz.CronExpression quartz = new org.quartz.CronExpression(cron);
         DateTimeZone zone = DateTimeZone.UTC;
         quartz.setTimeZone(zone.toTimeZone());

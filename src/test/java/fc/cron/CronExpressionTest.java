@@ -484,6 +484,43 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfWeekFieldWeekStartsSunday() throws Exception {
+        LocalDate start = new LocalDate(2012, 4, 1);
+        assertThat(new DayOfWeekField("1",  true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 8));
+        assertThat(new DayOfWeekField("SUN", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 8));
+
+        assertThat(new DayOfWeekField("2", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 2));
+        assertThat(new DayOfWeekField("MON", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 2));
+
+        assertThat(new DayOfWeekField("3", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 3));
+        assertThat(new DayOfWeekField("TUE", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 3));
+
+        assertThat(new DayOfWeekField("4", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 4));
+        assertThat(new DayOfWeekField("WED", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 4));
+
+        assertThat(new DayOfWeekField("5", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 5));
+        assertThat(new DayOfWeekField("THU", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 5));
+
+        assertThat(new DayOfWeekField("6", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 6));
+        assertThat(new DayOfWeekField("FRI", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 6));
+
+        assertThat(new DayOfWeekField("7", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 7));
+        assertThat(new DayOfWeekField("SAT", true).nextDate(start)).isEqualTo(new LocalDate(2012, 4, 7));
+    }
+
+    @Test
+    public void check_dayOfWeekWeekStartsSunday() throws Exception {
+        DateTime start = new LocalDate(2012, 4, 1).toDateTimeAtStartOfDay();
+        assertThat(new CronExpression("0 0 0 * * 1", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 8, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 2", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 2, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 3", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 3, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 4", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 4, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 5", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 5, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 6", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 6, 00, 00));
+        assertThat(new CronExpression("0 0 0 * * 7", true, true).nextTimeAfter(start)).isEqualTo(new DateTime(2012, 4, 7, 00, 00));
+    }
+
+    @Test
     public void check_dayOfWeek_list_by_name() throws Exception {
         assertThat(new CronExpression("0 0 0 * * MON,FRI,SUN").nextTimeAfter(new DateTime(2012, 4, 1, 00, 00))).isEqualTo(new DateTime(2012, 4, 2, 00, 00));
         assertThat(new CronExpression("0 0 0 * * MON,FRI,SUN").nextTimeAfter(new DateTime(2012, 4, 2, 00, 00))).isEqualTo(new DateTime(2012, 4, 6, 00, 00));

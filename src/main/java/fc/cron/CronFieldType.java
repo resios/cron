@@ -10,6 +10,7 @@ enum CronFieldType {
     DAY_OF_MONTH(1, 31, null),
     MONTH(1, 12, Arrays.asList("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")),
     DAY_OF_WEEK(1, 7, Arrays.asList("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")),
+    DAY_OF_WEEK_US(1, 7, Arrays.asList("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")),
     YEAR(1970, 2199, null);
 
     private final int from;

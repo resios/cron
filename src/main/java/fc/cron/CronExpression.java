@@ -91,6 +91,10 @@ public class CronExpression {
     }
 
     public CronExpression(final String expr, boolean shouldHaveSeconds) {
+        this(expr, shouldHaveSeconds, false);
+    }
+
+    public CronExpression(final String expr, boolean shouldHaveSeconds, boolean weekStartsSunday) {
         if (expr == null) {
             throw new IllegalArgumentException("expr is null"); //$NON-NLS-1$
         }
@@ -146,7 +150,7 @@ public class CronExpression {
         this.hourField = new SimpleField(CronFieldType.HOUR, parts[ix++]);
         this.dayOfMonthField = new DayOfMonthField(parts[ix++]);
         this.monthField = new SimpleField(CronFieldType.MONTH, parts[ix++]);
-        this.dayOfWeekField = new DayOfWeekField(parts[ix++]);
+        this.dayOfWeekField = new DayOfWeekField(parts[ix++], weekStartsSunday);
         this.yearField = new SimpleField(CronFieldType.YEAR, withYear ? parts[ix] : "*");
     }
 

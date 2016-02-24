@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import static fc.cron.CronFieldType.DAY_OF_WEEK;
+import static fc.cron.CronFieldType.DAY_OF_WEEK_US;
 import static org.joda.time.DateTimeConstants.DAYS_PER_WEEK;
 
 class DayOfWeekField extends BasicField {
@@ -14,7 +16,11 @@ class DayOfWeekField extends BasicField {
     private static final Set<String> ALLOWED_INCREMENTS = new HashSet<String>(Arrays.asList("/", "#"));
 
     DayOfWeekField(String fieldExpr) {
-        super(CronFieldType.DAY_OF_WEEK, fieldExpr);
+        this(fieldExpr, false);
+    }
+
+    DayOfWeekField(String fieldExpr, boolean weekStartsSunday) {
+        super(weekStartsSunday ? DAY_OF_WEEK_US : DAY_OF_WEEK, fieldExpr);
     }
 
     boolean matches(LocalDate date) {
@@ -90,7 +96,16 @@ class DayOfWeekField extends BasicField {
     @Override
     protected Integer mapValue(String value) {
         // Use 1-7 for weekdays, but 0 will also represent sunday (linux practice)
-        return "0".equals(value) ? Integer.valueOf(7) : super.mapValue(value);
+        if ("0".equals(value)) {
+            return 7;
+        } else {
+            try {
+                int result = Integer.parseInt(value);
+                return fieldType != DAY_OF_WEEK_US ? result : (result + 6 == 7 ? 7 : (result + 6) % 7);
+            } catch (Exception e) {
+                return super.mapValue(value);
+            }
+        }
     }
 
     @Override
