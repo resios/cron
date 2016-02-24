@@ -163,10 +163,10 @@ public class CronExpression {
     }
 
     public DateTime nextTimeAfter(DateTime afterTime) {
-        // will search for the next time within the next 4 years. If there is no
+        // will search for the next time within the next 8 years. If there is no
         // time matching, an InvalidArgumentException will be thrown (it is very
         // likely that the cron expression is invalid, like the February 30th).
-        return nextTimeAfter(afterTime, afterTime.plusYears(4));
+        return nextTimeAfter(afterTime, afterTime.plusYears(8));
     }
 
     public DateTime nextTimeAfter(DateTime afterTime, long durationInMillis) {

@@ -9,7 +9,7 @@ import java.util.Set;
 
 class DayOfMonthField extends BasicField {
 
-    private static final Set<String> ALLOWED_MODIFIERS = new HashSet<String>(Arrays.asList("L", "W", "?"));
+    private static final Set<String> ALLOWED_MODIFIERS = new HashSet<String>(Arrays.asList("L", "LW", "W", "?"));
 
     DayOfMonthField(String fieldExpr) {
         super(CronFieldType.DAY_OF_MONTH, fieldExpr);
@@ -17,20 +17,28 @@ class DayOfMonthField extends BasicField {
 
     boolean matches(LocalDate date) {
         for (FieldPart part : parts) {
-            if ("L".equals(part.getModifier())) {
-                return date.getDayOfMonth() == (date.dayOfMonth().getMaximumValue() - (part.getFrom() == null ? 0 : part.getFrom()));
-            } else if ("W".equals(part.getModifier())) {
-                if (date.getDayOfWeek() <= DateTimeConstants.FRIDAY) {
-                    if (date.getDayOfMonth() == part.getFrom()) {
-                        return true;
-                    } else if (date.getDayOfWeek() == DateTimeConstants.FRIDAY) {
-                        return date.plusDays(1).getDayOfMonth() == part.getFrom();
-                    } else if (date.getDayOfWeek() == DateTimeConstants.MONDAY) {
-                        return date.minusDays(1).getDayOfMonth() == part.getFrom();
+            switch (part.getModifier()) {
+                case "L":
+                    return date.getDayOfMonth() == (date.dayOfMonth().getMaximumValue() - (part.getFrom() == null ? 0 : part.getFrom()));
+                case "W":
+                    if (date.getDayOfWeek() <= DateTimeConstants.FRIDAY) {
+                        if (date.getDayOfMonth() == part.getFrom()) {
+                            return true;
+                        } else if (date.getDayOfWeek() == DateTimeConstants.FRIDAY) {
+                            return date.plusDays(1).getDayOfMonth() == part.getFrom();
+                        } else if (date.getDayOfWeek() == DateTimeConstants.MONDAY) {
+                            return date.minusDays(1).getDayOfMonth() == part.getFrom();
+                        }
                     }
-                }
-            } else if ("?".equals(part.getModifier())) {
-                return true;
+                    break;
+                case "LW":
+                    LocalDate last = date.dayOfMonth().withMaximumValue();
+                    last = last.minusDays(Math.max(0, last.getDayOfWeek() - DateTimeConstants.FRIDAY));
+                    return last.getDayOfMonth() == date.getDayOfMonth();
+                case "?":
+                    return true;
+                default:
+                    throw new IllegalStateException("Unknown modifier: " + part.getModifier());
             }
         }
 
@@ -41,12 +49,21 @@ class DayOfMonthField extends BasicField {
         LocalDate result = null;
         for (FieldPart part : parts) {
             LocalDate partDate = date;
-            if ("?".equals(part.getModifier())) {
-                partDate = date.plusDays(1);
-            } else if ("L".equals(part.getModifier())) {
-                partDate = nextLastDayOfMonth(date, part.getFrom());
-            } else if ("W".equals(part.getModifier())) {
-                partDate = nextWeekday(date, part.getFrom());
+            switch (part.getModifier()) {
+                case "?":
+                    partDate = date.plusDays(1);
+                    break;
+                case "L":
+                    partDate = nextLastDayOfMonth(date, part.getFrom());
+                    break;
+                case "W":
+                    partDate = nextWeekday(date, part.getFrom());
+                    break;
+                case "LW":
+                    partDate = nextLastWeekday(date);
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown modifier: " + part.getModifier());
             }
 
             result = result != null && result.isBefore(partDate) ? result : partDate;
@@ -64,6 +81,11 @@ class DayOfMonthField extends BasicField {
         }
 
         return result;
+    }
+
+    private LocalDate nextLastWeekday(LocalDate date) {
+        LocalDate last = date.plusDays(1).dayOfMonth().withMaximumValue();
+        return last.minusDays(Math.max(0, last.getDayOfWeek() - DateTimeConstants.FRIDAY));
     }
 
     private LocalDate nextLastDayOfMonth(LocalDate date, Integer offset) {

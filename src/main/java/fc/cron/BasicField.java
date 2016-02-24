@@ -71,6 +71,9 @@ abstract class BasicField {
                     part.setFrom(mapValue(startNumber));
                     part.setTo(part.getFrom());
                 }
+                if (m.group("lastWeek") != null) {
+                    part.setModifier("LW");
+                }
             } else {
                 throw new IllegalArgumentException("Invalid cron part: " + rangePart);
             }

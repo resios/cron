@@ -359,6 +359,15 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfMonth_last_weekday() throws Exception {
+        CronExpression cron = new CronExpression("0 0 0 LW * *");
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 4, 10, 00, 00))).isEqualTo(new DateTime(2012, 4, 30, 00, 00));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 6, 10, 00, 00))).isEqualTo(new DateTime(2012, 6, 29, 00, 00));
+        assertThat(cron.nextTimeAfter(new DateTime(2012, 9, 10, 00, 00))).isEqualTo(new DateTime(2012, 9, 28, 00, 00));
+        assertThat(cron.nextTimeAfter(new DateTime(2004, 2, 10, 00, 00))).isEqualTo(new DateTime(2004, 2, 27, 00, 00));
+    }
+
+    @Test
     public void check_dayOfMonthField_number_last_L() throws Exception {
         DayOfMonthField field = new DayOfMonthField("3L");
         assertThat(field.nextDate(new LocalDate(2012, 4, 10))).isEqualTo(new LocalDate(2012, 4, 30 - 3));
