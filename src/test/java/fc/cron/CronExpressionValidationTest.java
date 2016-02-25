@@ -36,7 +36,10 @@ public class CronExpressionValidationTest {
             "0 0 12 1/5 * ?",
             "0 11 11 11 11 ?",
             "* * * * * ? *",
-            "0/5 14,18,3-39,52 * ? JAN,MAR,SEP MON-FRI 2002-2010"
+            "0/5 14,18,3-39,52 * ? JAN,MAR,SEP MON-FRI 2002-2010",
+            "0 46/2 7 * * ?",
+            "0 0 10 14,18,21 * ?",
+            "0 0 10-15 ? * SAT-SUN"
     };
 
     @Test
