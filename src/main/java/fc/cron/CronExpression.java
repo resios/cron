@@ -18,6 +18,7 @@ package fc.cron;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.MutableDateTime;
+import org.joda.time.ReadableInstant;
 
 import java.util.NoSuchElementException;
 import java.util.regex.Pattern;
@@ -303,7 +304,7 @@ public class CronExpression {
         }
     }
 
-    private static void checkIfDateTimeBarrierIsReached(MutableDateTime nextTime, DateTime dateTimeBarrier) {
+    private static void checkIfDateTimeBarrierIsReached(ReadableInstant nextTime, DateTime dateTimeBarrier) {
         if (nextTime.isAfter(dateTimeBarrier)) {
             throw new IllegalArgumentException("No next execution time could be determined that is before the limit of " + dateTimeBarrier);
         }
@@ -311,6 +312,6 @@ public class CronExpression {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "<" + expr + ">";
+        return String.format("%s<%s>", getClass().getSimpleName(), expr);
     }
 }

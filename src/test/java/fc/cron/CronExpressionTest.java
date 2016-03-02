@@ -16,6 +16,7 @@
 package fc.cron;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeConstants;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Hours;
 import org.joda.time.LocalDate;
@@ -51,10 +52,10 @@ public class CronExpressionTest {
         assertPossibleValues(field, 5);
     }
 
-    private void assertPossibleValues(SimpleField field, Integer... values) {
+    private void assertPossibleValues(BasicField field, Integer... values) {
         Set<Integer> valid = values == null ? Collections.<Integer>emptySet() : new HashSet<Integer>(Arrays.asList(values));
         for (int i = field.fieldType.getFrom(); i <= field.fieldType.getTo(); i++) {
-            String errorText = i + ":" + valid;
+            String errorText = String.format("%d in %s", i, valid);
             if (valid.contains(i)) {
                 assertThat(field.matches(i)).as(errorText).isTrue();
             } else {
@@ -82,15 +83,47 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void shall_parse_range_with_rolling_period() throws Exception {
+        assertPossibleValues(new DayOfWeekField("SAT-MON", false), 1, 6, 7);
+        assertPossibleValues(new DayOfWeekField("FRI-MON", false), 1, 5, 6, 7);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT", true), 1, 2, 3, 4, 5, 6, 7);
+    }
+
+    @Test
+    public void shall_parse_range_with_increment_for_day_of_week() throws Exception {
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/5", true), DateTimeConstants.FRIDAY, DateTimeConstants.SUNDAY);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/5", false), DateTimeConstants.FRIDAY, DateTimeConstants.SUNDAY);
+
+        assertPossibleValues(new DayOfWeekField("1-6/5", true), DateTimeConstants.FRIDAY, DateTimeConstants.SUNDAY);
+        assertPossibleValues(new DayOfWeekField("1-6/5", false), DateTimeConstants.MONDAY, DateTimeConstants.SATURDAY);
+
+        assertPossibleValues(new DayOfWeekField("1/5", true), DateTimeConstants.FRIDAY, DateTimeConstants.SUNDAY);
+        assertPossibleValues(new DayOfWeekField("1/5", false), DateTimeConstants.MONDAY, DateTimeConstants.SATURDAY);
+
+        assertPossibleValues(new DayOfWeekField("*/5", true), DateTimeConstants.FRIDAY, DateTimeConstants.SUNDAY);
+        assertPossibleValues(new DayOfWeekField("*/5", false), DateTimeConstants.MONDAY, DateTimeConstants.SATURDAY);
+    }
+
+    @Test
+    public void shall_parse_range_with_increment2() throws Exception {
+        assertPossibleValues(new SimpleField(CronFieldType.MINUTE, "*/3"),
+                0, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51, 54, 57);
+
+        assertPossibleValues(new DayOfMonthField("*/3"), 1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31);
+
+        assertPossibleValues(new DayOfMonthField("*/5"), 1, 6, 11, 16, 21, 26, 31);
+
+        assertPossibleValues(new SimpleField(CronFieldType.MONTH, "7/6"), 7);
+    }
+
+    @Test
     public void shall_parse_asterix() throws Exception {
-        SimpleField field = new SimpleField(CronFieldType.DAY_OF_WEEK, "*");
-        assertPossibleValues(field, 1, 2, 3, 4, 5, 6, 7);
+        assertPossibleValues(new DayOfWeekField("*"), 1, 2, 3, 4, 5, 6, 7);
     }
 
     @Test
     public void shall_parse_asterix_with_increment() throws Exception {
-        SimpleField field = new SimpleField(CronFieldType.DAY_OF_WEEK, "*/2");
-        assertPossibleValues(field, 1, 3, 5, 7);
+        assertPossibleValues(new DayOfWeekField("*/2"), 1, 3, 5, 7);
     }
 
     @Test
@@ -606,9 +639,20 @@ public class CronExpressionTest {
         assertThat(new DayOfWeekField("WED#5").nextDate(new LocalDate(2012, 2, 6))).isEqualTo(new LocalDate(2012, 2, 29));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void shall_not_not_support_rolling_period() throws Exception {
-        new CronExpression("* * 5-1 * * *");
+    @Test
+    public void shall_support_rolling_period() throws Exception {
+        assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2"), 22, 23, 0, 1, 2);
+        assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2/2"), 22, 0, 2);
+        assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2/3"), 22, 1);
+        assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2/4"), 22, 2);
+        assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2/5"), 22);
+
+
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/5", true), 7, 5);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/4", true), 7, 4);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/3", true), 7, 3, 6);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/2", true), 7, 2, 4, 6);
+        assertPossibleValues(new DayOfWeekField("SUN-SAT/1", true), 1, 2, 3, 4, 5, 6, 7);
     }
 
     @Test(expected = IllegalArgumentException.class)
