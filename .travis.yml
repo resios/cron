@@ -2,3 +2,14 @@ language: java
 
 after_success:
   - mvn clean test jacoco:report coveralls:report
+
+addons:
+  coverity_scan:
+    project:
+      name: "resios/cron"
+      description: "Build submitted via Travis CI"
+    notification_email: andrei.resios@gmail.com
+    build_command_prepend: "mvn clean"
+    build_command:   "mvn -DskipTests=true compile"
+    branch_pattern: coverity_scan
+
