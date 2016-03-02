@@ -3,6 +3,7 @@ cron
 
 [![Build Status](https://travis-ci.org/resios/cron.svg?branch=master)](https://travis-ci.org/resios/cron)
 [![Coverage Status](https://coveralls.io/repos/github/resios/cron/badge.svg?branch=master)](https://coveralls.io/github/resios/cron?branch=master)
+[![Coverity Scan Build](https://scan.coverity.com/projects/8129/badge.svg)](https://scan.coverity.com/projects/8129)
 
  Cron expression parser and evaluator.  
  
