@@ -640,6 +640,15 @@ public class CronExpressionTest {
     }
 
     @Test
+    public void check_dayOfWeekField_supports_multiple_nth_entries() throws Exception {
+        DayOfWeekField f = new DayOfWeekField("TUE#2,TUE#3");
+        assertThat(f.nextDate(new LocalDate(2016, 4, 7))).isEqualTo(new LocalDate(2016, 4, 12));
+        assertThat(f.nextDate(new LocalDate(2016, 4, 12))).isEqualTo(new LocalDate(2016, 4, 19));
+        assertThat(f.nextDate(new LocalDate(2016, 4, 19))).isEqualTo(new LocalDate(2016, 5, 10));
+        assertThat(f.nextDate(new LocalDate(2016, 5, 10))).isEqualTo(new LocalDate(2016, 5, 17));
+    }
+
+    @Test
     public void shall_support_rolling_period() throws Exception {
         assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2"), 22, 23, 0, 1, 2);
         assertPossibleValues(new SimpleField(CronFieldType.HOUR, "22-2/2"), 22, 0, 2);

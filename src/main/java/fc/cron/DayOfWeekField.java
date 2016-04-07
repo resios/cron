@@ -25,19 +25,27 @@ class DayOfWeekField extends BasicField {
 
     boolean matches(LocalDate date) {
         for (FieldPart part : parts) {
-            if ("L".equals(part.getModifier())) {
-                return date.getDayOfWeek() == part.getFrom() && date.getDayOfMonth() > (date.dayOfMonth().getMaximumValue() - DAYS_PER_WEEK);
-            } else if ("#".equals(part.getIncrementModifier())) {
-                if (date.getDayOfWeek() == part.getFrom()) {
-                    int num = date.getDayOfMonth() / DAYS_PER_WEEK;
-                    return part.getIncrement() == (date.getDayOfMonth() % DAYS_PER_WEEK == 0 ? num : num + 1);
-                }
-                return false;
-            } else if ("?".equals(part.getModifier())) {
+            if (matches(part, date)) {
                 return true;
             }
         }
         return matches(date.getDayOfWeek());
+    }
+
+    private boolean matches(FieldPart part, LocalDate date) {
+        if ("L".equals(part.getModifier())) {
+            return date.getDayOfWeek() == part.getFrom() && date.getDayOfMonth() > (date.dayOfMonth().getMaximumValue() - DAYS_PER_WEEK);
+        } else if ("#".equals(part.getIncrementModifier())) {
+            if (date.getDayOfWeek() == part.getFrom()) {
+                int num = date.getDayOfMonth() / DAYS_PER_WEEK;
+                return part.getIncrement() == (date.getDayOfMonth() % DAYS_PER_WEEK == 0 ? num : num + 1);
+            }
+            return false;
+        } else if ("?".equals(part.getModifier())) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     LocalDate nextDate(LocalDate date) {

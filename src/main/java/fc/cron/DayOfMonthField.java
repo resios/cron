@@ -17,32 +17,39 @@ class DayOfMonthField extends BasicField {
 
     boolean matches(LocalDate date) {
         for (FieldPart part : parts) {
-            switch (part.getModifier()) {
-                case "L":
-                    return date.getDayOfMonth() == (date.dayOfMonth().getMaximumValue() - (part.getFrom() == null ? 0 : part.getFrom()));
-                case "W":
-                    if (date.getDayOfWeek() <= DateTimeConstants.FRIDAY) {
-                        if (date.getDayOfMonth() == part.getFrom()) {
-                            return true;
-                        } else if (date.getDayOfWeek() == DateTimeConstants.FRIDAY) {
-                            return date.plusDays(1).getDayOfMonth() == part.getFrom();
-                        } else if (date.getDayOfWeek() == DateTimeConstants.MONDAY) {
-                            return date.minusDays(1).getDayOfMonth() == part.getFrom();
-                        }
-                    }
-                    break;
-                case "LW":
-                    LocalDate last = date.dayOfMonth().withMaximumValue();
-                    last = last.minusDays(Math.max(0, last.getDayOfWeek() - DateTimeConstants.FRIDAY));
-                    return last.getDayOfMonth() == date.getDayOfMonth();
-                case "?":
-                    return true;
-                default:
-                    throw new IllegalStateException("Unknown modifier: " + part.getModifier());
+            if (matches(part, date)) {
+                return true;
             }
         }
 
         return matches(date.getDayOfMonth());
+    }
+
+    private boolean matches(FieldPart part, LocalDate date) {
+        switch (part.getModifier()) {
+            case "L":
+                return date.getDayOfMonth() == (date.dayOfMonth().getMaximumValue() - (part.getFrom() == null ? 0 : part.getFrom()));
+            case "W":
+                if (date.getDayOfWeek() <= DateTimeConstants.FRIDAY) {
+                    if (date.getDayOfMonth() == part.getFrom()) {
+                        return true;
+                    } else if (date.getDayOfWeek() == DateTimeConstants.FRIDAY) {
+                        return date.plusDays(1).getDayOfMonth() == part.getFrom();
+                    } else if (date.getDayOfWeek() == DateTimeConstants.MONDAY) {
+                        return date.minusDays(1).getDayOfMonth() == part.getFrom();
+                    }
+                }
+                break;
+            case "LW":
+                LocalDate last = date.dayOfMonth().withMaximumValue();
+                last = last.minusDays(Math.max(0, last.getDayOfWeek() - DateTimeConstants.FRIDAY));
+                return last.getDayOfMonth() == date.getDayOfMonth();
+            case "?":
+                return true;
+            default:
+                throw new IllegalStateException("Unknown modifier: " + part.getModifier());
+        }
+        return false;
     }
 
     public LocalDate nextDate(LocalDate date) {
